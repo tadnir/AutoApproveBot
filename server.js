@@ -5,15 +5,11 @@ const path = require('path');
 
 const app = express();
 
-// Load approval comments from JSON file
-const commentsPath = path.join(__dirname, 'comments.json');
-const commentsData = JSON.parse(fs.readFileSync(commentsPath, 'utf-8'));
-const approvalComments = commentsData.comments;
-
-// Load trigger words from JSON file
-const triggersPath = path.join(__dirname, 'triggers.json');
-const triggersData = JSON.parse(fs.readFileSync(triggersPath, 'utf-8'));
-const triggerWords = triggersData.triggerWords;
+// Load configuration from JSON file
+const configPath = path.join(__dirname, 'configurations.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+const approvalComments = config.comments;
+const triggerWords = config.triggerWords;
 
 function getRandomComment() {
   const index = Math.floor(Math.random() * approvalComments.length);

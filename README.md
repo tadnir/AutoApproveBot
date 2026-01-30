@@ -72,7 +72,7 @@ docker compose down
 
 The bot auto-approves a PR when a comment:
 1. Mentions your GitHub username (e.g., `@username`)
-2. Contains a trigger word (configurable in `triggers.json`)
+2. Contains a trigger word (configurable in `configurations.json`)
 3. Contains any emoji
 
 **Example comment that triggers approval:**
@@ -82,22 +82,23 @@ The bot auto-approves a PR when a comment:
 
 ## Configuration
 
-### Trigger Words
-
-Edit `triggers.json` to customize which words trigger auto-approval:
+Edit `configurations.json` to customize trigger words and approval comments:
 
 ```json
 {
   "triggerWords": [
     "review",
     "approve",
-    ...
     "check",
+    "merge",
+    "allow",
     "look"
+  ],
+  "comments": [
+    "LGTM",
+    "Nice",
+    "Approved",
+    ...
   ]
 }
 ```
-
-### Approval Comments
-
-Edit `comments.json` to customize the random approval messages.
