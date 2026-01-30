@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Slack webhook URL parameter (optional)
+SLACK_WEBHOOK_URL="$1"
+if [ -z "$SLACK_WEBHOOK_URL" ]; then
+    echo "Warning: No Slack webhook URL provided. Slack notifications will be disabled."
+    echo "Usage: ./run.sh [slack-webhook-url]"
+fi
+
 # Get ngrok authtoken from config
 NGROK_CONFIG=$(ngrok config check 2>&1 | grep -o '/.*ngrok.yml')
 NGROK_TOKEN=$(grep 'authtoken:' "$NGROK_CONFIG" 2>/dev/null | awk '{print $2}')
@@ -20,4 +27,4 @@ fi
 echo "ngrok authenticated"
 echo "GitHub CLI authenticated"
 
-NGROK_AUTHTOKEN="$NGROK_TOKEN" GH_TOKEN="$GH_TOKEN" docker compose up --build -d "$@"
+NGROK_AUTHTOKEN="$NGROK_TOKEN" GH_TOKEN="$GH_TOKEN" SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL" docker compose up --build -d

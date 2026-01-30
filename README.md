@@ -51,8 +51,10 @@ After starting the bot, you'll need to add a webhook to each repository you want
 ## Running
 
 ```bash
-./run.sh
+./run.sh [slack-webhook-url]
 ```
+
+The Slack webhook URL is optional. If provided, the bot will send notifications to Slack on approval success/failure. Get your webhook URL from https://api.slack.com/apps → Create App → Incoming Webhooks.
 
 The bot runs in the background. View the ngrok URL at http://localhost:4040.
 

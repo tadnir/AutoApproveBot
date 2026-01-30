@@ -1,5 +1,6 @@
 const express = require('express');
 const { execSync } = require('child_process');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
@@ -12,6 +13,7 @@ const approvalComments = config.comments;
 const triggerWords = config.triggerWords;
 const quickTriggerWords = config.quickTriggerWords;
 const delayConfig = config.delay;
+const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 
 function getRandomComment() {
   const index = Math.floor(Math.random() * approvalComments.length);
@@ -65,6 +67,66 @@ function containsMention(text, username) {
   return mentionPattern.test(text);
 }
 
+function sendSlackMessage({ repoFullName, prNumber, success, reason, triggeredBy, approver, isQuickTrigger }) {
+  if (!slackWebhookUrl) {
+    console.log('Slack notification skipped (no webhook URL configured)');
+    return;
+  }
+
+  const prUrl = `https://github.com/${repoFullName}/pull/${prNumber}`;
+  const timestamp = new Date().toISOString();
+  const quickTriggerText = isQuickTrigger ? 'Yes' : 'No';
+
+  let text;
+  if (success) {
+    text = [
+      `✅ *Approved PR #${prNumber}* in \`${repoFullName}\``,
+      `• PR: <${prUrl}|${repoFullName}#${prNumber}>`,
+      `• Triggered by: ${triggeredBy}`,
+      `• Approver: ${approver}`,
+      `• Quick trigger: ${quickTriggerText}`,
+      `• Time: ${timestamp}`
+    ].join('\n');
+  } else {
+    text = [
+      `❌ *Failed to approve PR #${prNumber}* in \`${repoFullName}\``,
+      `• PR: <${prUrl}|${repoFullName}#${prNumber}>`,
+      `• Triggered by: ${triggeredBy}`,
+      `• Approver: ${approver}`,
+      `• Quick trigger: ${quickTriggerText}`,
+      `• Time: ${timestamp}`,
+      `• Reason: ${reason}`
+    ].join('\n');
+  }
+
+  const message = { text };
+
+  const url = new URL(slackWebhookUrl);
+  const options = {
+    hostname: url.hostname,
+    path: url.pathname,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  const req = https.request(options, (res) => {
+    if (res.statusCode === 200) {
+      console.log('Slack notification sent successfully');
+    } else {
+      console.error(`Slack notification failed with status: ${res.statusCode}`);
+    }
+  });
+
+  req.on('error', (error) => {
+    console.error('Failed to send Slack notification:', error.message);
+  });
+
+  req.write(JSON.stringify(message));
+  req.end();
+}
+
 function approvePR(repoFullName, prNumber) {
   try {
     const comment = getRandomComment();
@@ -72,10 +134,10 @@ function approvePR(repoFullName, prNumber) {
     console.log(`Executing: ${command}`);
     const result = execSync(command, { encoding: 'utf-8' });
     console.log(`PR #${prNumber} approved successfully with comment: "${comment}"`);
-    return true;
+    return { success: true };
   } catch (error) {
     console.error(`Failed to approve PR #${prNumber}:`, error.message);
-    return false;
+    return { success: false, reason: error.message };
   }
 }
 
@@ -130,15 +192,33 @@ app.post('/webhook', (req, res) => {
   if (hasMention && hasTriggerWord && hasEmoji) {
     if (hasQuickTrigger) {
       console.log('Quick trigger detected! Approving PR instantly...');
-      const success = approvePR(repoFullName, prNumber);
-      console.log(`PR #${prNumber} approval finished - ${success ? 'SUCCESS' : 'FAILED'}`);
+      const result = approvePR(repoFullName, prNumber);
+      console.log(`PR #${prNumber} approval finished - ${result.success ? 'SUCCESS' : 'FAILED'}`);
+      sendSlackMessage({
+        repoFullName,
+        prNumber,
+        success: result.success,
+        reason: result.reason,
+        triggeredBy: commenter,
+        approver: GITHUB_USERNAME,
+        isQuickTrigger: true
+      });
     } else {
       const delaySeconds = getRandomDelay();
       console.log(`All conditions met! Approving PR in ${delaySeconds} seconds...`);
 
       setTimeout(() => {
-        const success = approvePR(repoFullName, prNumber);
-        console.log(`PR #${prNumber} approval finished - ${success ? 'SUCCESS' : 'FAILED'}`);
+        const result = approvePR(repoFullName, prNumber);
+        console.log(`PR #${prNumber} approval finished - ${result.success ? 'SUCCESS' : 'FAILED'}`);
+        sendSlackMessage({
+          repoFullName,
+          prNumber,
+          success: result.success,
+          reason: result.reason,
+          triggeredBy: commenter,
+          approver: GITHUB_USERNAME,
+          isQuickTrigger: false
+        });
       }, delaySeconds * 1000);
     }
   } else {
@@ -160,6 +240,7 @@ app.listen(PORT, () => {
   console.log(`  4. Contains any emoji`);
   console.log(`\nTrigger words (delayed ${delayConfig.minSeconds}-${delayConfig.maxSeconds}s): ${triggerWords.join(', ')}`);
   console.log(`Quick triggers (instant, requires trigger word): ${quickTriggerWords.join(', ')}`);
+  console.log(`\nSlack notifications: ${slackWebhookUrl ? 'enabled' : 'disabled'}`);
   console.log(`\nExample comment that would trigger approval:`);
   console.log(`  "@${GITHUB_USERNAME} please review this PR! 🙏"`);
   console.log(`\nWaiting for webhook events...\n`);
