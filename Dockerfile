@@ -10,7 +10,7 @@ COPY package*.json ./
 RUN npm install --production
 
 # Copy application code
-COPY server.js ./
+COPY server.js comments.json ./
 
 # Expose the webhook server port
 EXPOSE 3030

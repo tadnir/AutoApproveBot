@@ -1,7 +1,19 @@
 const express = require('express');
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
+
+// Load approval comments from JSON file
+const commentsPath = path.join(__dirname, 'comments.json');
+const commentsData = JSON.parse(fs.readFileSync(commentsPath, 'utf-8'));
+const approvalComments = commentsData.comments;
+
+function getRandomComment() {
+  const index = Math.floor(Math.random() * approvalComments.length);
+  return approvalComments[index];
+}
 const PORT = process.env.PORT || 3030;
 
 // Get GitHub username from gh CLI
@@ -36,10 +48,11 @@ function containsMention(text, username) {
 
 function approvePR(repoFullName, prNumber) {
   try {
-    const command = `gh pr review ${prNumber} --repo ${repoFullName} --approve --body "Auto-approved by AutoApproveBot"`;
+    const comment = getRandomComment();
+    const command = `gh pr review ${prNumber} --repo ${repoFullName} --approve --body "${comment}"`;
     console.log(`Executing: ${command}`);
     const result = execSync(command, { encoding: 'utf-8' });
-    console.log(`PR #${prNumber} approved successfully`);
+    console.log(`PR #${prNumber} approved successfully with comment: "${comment}"`);
     return true;
   } catch (error) {
     console.error(`Failed to approve PR #${prNumber}:`, error.message);
