@@ -1,0 +1,22 @@
+services:
+  bot:
+    build: .
+    container_name: autoapprovebot
+    ports:
+      - "3030:3030"
+    environment:
+      - PORT=3030
+      - GH_TOKEN=${GH_TOKEN}
+    restart: unless-stopped
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: autoapprovebot-ngrok
+    command: http bot:3030
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"
+    depends_on:
+      - bot
+    restart: unless-stopped
