@@ -10,10 +10,17 @@ const configPath = path.join(__dirname, 'configurations.json');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 const approvalComments = config.comments;
 const triggerWords = config.triggerWords;
+const delayConfig = config.delay;
 
 function getRandomComment() {
   const index = Math.floor(Math.random() * approvalComments.length);
   return approvalComments[index];
+}
+
+function getRandomDelay() {
+  const min = delayConfig.minSeconds;
+  const max = delayConfig.maxSeconds;
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
 const PORT = process.env.PORT || 3030;
 
@@ -113,11 +120,17 @@ app.post('/webhook', (req, res) => {
   console.log(`Conditions - Mention @${GITHUB_USERNAME}: ${hasMention}, trigger word: ${hasTriggerWord}, emoji: ${hasEmoji}`);
 
   if (hasMention && hasTriggerWord && hasEmoji) {
-    console.log('All conditions met! Approving PR...');
-    const success = approvePR(repoFullName, prNumber);
+    const delaySeconds = getRandomDelay();
+    console.log(`All conditions met! Approving PR in ${delaySeconds} seconds...`);
+
+    setTimeout(() => {
+      const success = approvePR(repoFullName, prNumber);
+      console.log(`PR #${prNumber} approval finished - ${success ? 'SUCCESS' : 'FAILED'}`);
+    }, delaySeconds * 1000);
+
     return res.status(200).json({
-      message: success ? 'PR approved' : 'Failed to approve PR',
-      approved: success
+      message: 'PR approval scheduled',
+      delaySeconds: delaySeconds
     });
   }
 
@@ -135,6 +148,7 @@ app.listen(PORT, () => {
   console.log(`  2. Mentions @${GITHUB_USERNAME}`);
   console.log(`  3. Contains a trigger word: ${triggerWords.join(', ')}`);
   console.log(`  4. Contains any emoji`);
+  console.log(`\nApproval delay: ${delayConfig.minSeconds}-${delayConfig.maxSeconds} seconds (random)`);
   console.log(`\nExample comment that would trigger approval:`);
   console.log(`  "@${GITHUB_USERNAME} please review this PR! 🙏"`);
   console.log(`\nWaiting for webhook events...\n`);

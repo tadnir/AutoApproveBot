@@ -18,5 +18,9 @@
     "Seems good",
     "OK",
     "Ready to merge"
-  ]
+  ],
+  "delay": {
+    "minSeconds": 20,
+    "maxSeconds": 90
+  }
 }
