@@ -1,6 +1,6 @@
 # AutoApproveBot
 
-A GitHub PR auto-approval bot that approves PRs when you're mentioned in a comment with the word "review" and any emoji.
+A GitHub PR auto-approval bot that approves PRs when you're mentioned in a comment with a trigger word and any emoji.
 
 ## Prerequisites
 
@@ -72,10 +72,32 @@ docker compose down
 
 The bot auto-approves a PR when a comment:
 1. Mentions your GitHub username (e.g., `@username`)
-2. Contains the word "review"
+2. Contains a trigger word (configurable in `triggers.json`)
 3. Contains any emoji
 
 **Example comment that triggers approval:**
 ```
 @username please review this PR! 🙏
 ```
+
+## Configuration
+
+### Trigger Words
+
+Edit `triggers.json` to customize which words trigger auto-approval:
+
+```json
+{
+  "triggerWords": [
+    "review",
+    "approve",
+    ...
+    "check",
+    "look"
+  ]
+}
+```
+
+### Approval Comments
+
+Edit `comments.json` to customize the random approval messages.

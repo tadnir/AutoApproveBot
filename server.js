@@ -10,6 +10,11 @@ const commentsPath = path.join(__dirname, 'comments.json');
 const commentsData = JSON.parse(fs.readFileSync(commentsPath, 'utf-8'));
 const approvalComments = commentsData.comments;
 
+// Load trigger words from JSON file
+const triggersPath = path.join(__dirname, 'triggers.json');
+const triggersData = JSON.parse(fs.readFileSync(triggersPath, 'utf-8'));
+const triggerWords = triggersData.triggerWords;
+
 function getRandomComment() {
   const index = Math.floor(Math.random() * approvalComments.length);
   return approvalComments[index];
@@ -37,8 +42,12 @@ function containsEmoji(text) {
   return emojiRegex.test(text);
 }
 
-function containsReview(text) {
-  return /\breview\b/i.test(text);
+function containsTriggerWord(text) {
+  const lowerText = text.toLowerCase();
+  return triggerWords.some(word => {
+    const pattern = new RegExp(`\\b${word}\\b`, 'i');
+    return pattern.test(text);
+  });
 }
 
 function containsMention(text, username) {
@@ -102,12 +111,12 @@ app.post('/webhook', (req, res) => {
 
   // Check all conditions
   const hasMention = containsMention(comment, GITHUB_USERNAME);
-  const hasReview = containsReview(comment);
+  const hasTriggerWord = containsTriggerWord(comment);
   const hasEmoji = containsEmoji(comment);
 
-  console.log(`Conditions - Mention @${GITHUB_USERNAME}: ${hasMention}, "review": ${hasReview}, emoji: ${hasEmoji}`);
+  console.log(`Conditions - Mention @${GITHUB_USERNAME}: ${hasMention}, trigger word: ${hasTriggerWord}, emoji: ${hasEmoji}`);
 
-  if (hasMention && hasReview && hasEmoji) {
+  if (hasMention && hasTriggerWord && hasEmoji) {
     console.log('All conditions met! Approving PR...');
     const success = approvePR(repoFullName, prNumber);
     return res.status(200).json({
@@ -128,7 +137,7 @@ app.listen(PORT, () => {
   console.log(`Conditions for auto-approval:`);
   console.log(`  1. Comment on a PR`);
   console.log(`  2. Mentions @${GITHUB_USERNAME}`);
-  console.log(`  3. Contains the word "review"`);
+  console.log(`  3. Contains a trigger word: ${triggerWords.join(', ')}`);
   console.log(`  4. Contains any emoji`);
   console.log(`\nExample comment that would trigger approval:`);
   console.log(`  "@${GITHUB_USERNAME} please review this PR! 🙏"`);
