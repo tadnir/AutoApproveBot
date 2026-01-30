@@ -87,6 +87,7 @@ Edit `configurations.json` to customize trigger words and approval comments:
 ```json
 {
   "triggerWords": ["review", "approve", "check", "merge", "allow", "look"],
+  "quickTriggerWords": ["quick", "asap"],
   "comments": ["LGTM", "Nice", "Approved", ...],
   "delay": {
     "minSeconds": 20,
@@ -95,6 +96,7 @@ Edit `configurations.json` to customize trigger words and approval comments:
 }
 ```
 
-- **triggerWords**: Words that trigger auto-approval when found in a comment
+- **triggerWords**: Words that trigger auto-approval with a random delay
+- **quickTriggerWords**: When combined with a trigger word, makes the approval instant (no delay)
 - **comments**: Random approval messages the bot will use
-- **delay**: Random delay (in seconds) before posting the approval
+- **delay**: Random delay (in seconds) for regular trigger words

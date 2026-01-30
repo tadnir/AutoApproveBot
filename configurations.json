@@ -19,6 +19,10 @@
     "OK",
     "Ready to merge"
   ],
+  "quickTriggerWords": [
+    "quick",
+    "asap"
+  ],
   "delay": {
     "minSeconds": 20,
     "maxSeconds": 90

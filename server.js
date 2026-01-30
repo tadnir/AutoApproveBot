@@ -10,6 +10,7 @@ const configPath = path.join(__dirname, 'configurations.json');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 const approvalComments = config.comments;
 const triggerWords = config.triggerWords;
+const quickTriggerWords = config.quickTriggerWords;
 const delayConfig = config.delay;
 
 function getRandomComment() {
@@ -46,8 +47,14 @@ function containsEmoji(text) {
 }
 
 function containsTriggerWord(text) {
-  const lowerText = text.toLowerCase();
   return triggerWords.some(word => {
+    const pattern = new RegExp(`\\b${word}\\b`, 'i');
+    return pattern.test(text);
+  });
+}
+
+function containsQuickTriggerWord(text) {
+  return quickTriggerWords.some(word => {
     const pattern = new RegExp(`\\b${word}\\b`, 'i');
     return pattern.test(text);
   });
@@ -115,27 +122,30 @@ app.post('/webhook', (req, res) => {
   // Check all conditions
   const hasMention = containsMention(comment, GITHUB_USERNAME);
   const hasTriggerWord = containsTriggerWord(comment);
+  const hasQuickTrigger = containsQuickTriggerWord(comment);
   const hasEmoji = containsEmoji(comment);
 
-  console.log(`Conditions - Mention @${GITHUB_USERNAME}: ${hasMention}, trigger word: ${hasTriggerWord}, emoji: ${hasEmoji}`);
+  console.log(`Conditions - Mention @${GITHUB_USERNAME}: ${hasMention}, trigger: ${hasTriggerWord}, quick trigger: ${hasQuickTrigger}, emoji: ${hasEmoji}`);
 
   if (hasMention && hasTriggerWord && hasEmoji) {
-    const delaySeconds = getRandomDelay();
-    console.log(`All conditions met! Approving PR in ${delaySeconds} seconds...`);
-
-    setTimeout(() => {
+    if (hasQuickTrigger) {
+      console.log('Quick trigger detected! Approving PR instantly...');
       const success = approvePR(repoFullName, prNumber);
       console.log(`PR #${prNumber} approval finished - ${success ? 'SUCCESS' : 'FAILED'}`);
-    }, delaySeconds * 1000);
+    } else {
+      const delaySeconds = getRandomDelay();
+      console.log(`All conditions met! Approving PR in ${delaySeconds} seconds...`);
 
-    return res.status(200).json({
-      message: 'PR approval scheduled',
-      delaySeconds: delaySeconds
-    });
+      setTimeout(() => {
+        const success = approvePR(repoFullName, prNumber);
+        console.log(`PR #${prNumber} approval finished - ${success ? 'SUCCESS' : 'FAILED'}`);
+      }, delaySeconds * 1000);
+    }
+  } else {
+    console.log('Conditions not met, no action taken');
   }
 
-  console.log('Conditions not met, no action taken');
-  return res.status(200).json({ message: 'Conditions not met' });
+  return res.status(200).json({ status: 'ok' });
 });
 
 app.listen(PORT, () => {
@@ -146,9 +156,10 @@ app.listen(PORT, () => {
   console.log(`Conditions for auto-approval:`);
   console.log(`  1. Comment on a PR`);
   console.log(`  2. Mentions @${GITHUB_USERNAME}`);
-  console.log(`  3. Contains a trigger word: ${triggerWords.join(', ')}`);
+  console.log(`  3. Contains a trigger word or quick trigger`);
   console.log(`  4. Contains any emoji`);
-  console.log(`\nApproval delay: ${delayConfig.minSeconds}-${delayConfig.maxSeconds} seconds (random)`);
+  console.log(`\nTrigger words (delayed ${delayConfig.minSeconds}-${delayConfig.maxSeconds}s): ${triggerWords.join(', ')}`);
+  console.log(`Quick triggers (instant, requires trigger word): ${quickTriggerWords.join(', ')}`);
   console.log(`\nExample comment that would trigger approval:`);
   console.log(`  "@${GITHUB_USERNAME} please review this PR! 🙏"`);
   console.log(`\nWaiting for webhook events...\n`);
