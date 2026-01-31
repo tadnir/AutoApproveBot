@@ -112,11 +112,15 @@ function sendSlackMessage({ repoFullName, prNumber, success, reason, triggeredBy
   };
 
   const req = https.request(options, (res) => {
-    if (res.statusCode === 200) {
-      console.log('Slack notification sent successfully');
-    } else {
-      console.error(`Slack notification failed with status: ${res.statusCode}`);
-    }
+    let body = '';
+    res.on('data', (chunk) => body += chunk);
+    res.on('end', () => {
+      if (res.statusCode === 200) {
+        console.log('Slack notification sent successfully');
+      } else {
+        console.error(`Slack notification failed with status: ${res.statusCode}, reason: ${body}`);
+      }
+    });
   });
 
   req.on('error', (error) => {
