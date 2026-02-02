@@ -67,7 +67,7 @@ function containsMention(text, username) {
   return mentionPattern.test(text);
 }
 
-function sendSlackMessage({ repoFullName, prNumber, success, reason, triggeredBy, approver, isQuickTrigger }) {
+function sendSlackMessage({ repoFullName, prNumber, prTitle, success, reason, triggeredBy, approver, isQuickTrigger }) {
   if (!slackWebhookUrl) {
     console.log('Slack notification skipped (no webhook URL configured)');
     return;
@@ -82,6 +82,7 @@ function sendSlackMessage({ repoFullName, prNumber, success, reason, triggeredBy
     text = [
       `✅ *Approved PR #${prNumber}* in \`${repoFullName}\``,
       `• PR: <${prUrl}|${repoFullName}#${prNumber}>`,
+      `• Title: ${prTitle}`,
       `• Triggered by: ${triggeredBy}`,
       `• Approver: ${approver}`,
       `• Quick trigger: ${quickTriggerText}`,
@@ -91,6 +92,7 @@ function sendSlackMessage({ repoFullName, prNumber, success, reason, triggeredBy
     text = [
       `❌ *Failed to approve PR #${prNumber}* in \`${repoFullName}\``,
       `• PR: <${prUrl}|${repoFullName}#${prNumber}>`,
+      `• Title: ${prTitle}`,
       `• Triggered by: ${triggeredBy}`,
       `• Approver: ${approver}`,
       `• Quick trigger: ${quickTriggerText}`,
@@ -178,6 +180,7 @@ app.post('/webhook', (req, res) => {
   const comment = payload.comment?.body || '';
   const repoFullName = payload.repository?.full_name;
   const prNumber = payload.issue?.number;
+  const prTitle = payload.issue?.title;
   const commenter = payload.comment?.user?.login;
 
   console.log(`Repository: ${repoFullName}`);
@@ -201,6 +204,7 @@ app.post('/webhook', (req, res) => {
       sendSlackMessage({
         repoFullName,
         prNumber,
+        prTitle,
         success: result.success,
         reason: result.reason,
         triggeredBy: commenter,
@@ -217,6 +221,7 @@ app.post('/webhook', (req, res) => {
         sendSlackMessage({
           repoFullName,
           prNumber,
+          prTitle,
           success: result.success,
           reason: result.reason,
           triggeredBy: commenter,
