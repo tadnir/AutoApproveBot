@@ -82,7 +82,7 @@ function sendSlackMessage({ repoFullName, prNumber, prTitle, success, reason, tr
     text = [
       `✅ *Approved PR #${prNumber}* in \`${repoFullName}\``,
       `• PR: <${prUrl}|${repoFullName}#${prNumber}>`,
-      `• Title: ${prTitle}`,
+      `• Title: \`${prTitle}\``,
       `• Triggered by: ${triggeredBy}`,
       `• Approver: ${approver}`,
       `• Quick trigger: ${quickTriggerText}`,
@@ -92,7 +92,7 @@ function sendSlackMessage({ repoFullName, prNumber, prTitle, success, reason, tr
     text = [
       `❌ *Failed to approve PR #${prNumber}* in \`${repoFullName}\``,
       `• PR: <${prUrl}|${repoFullName}#${prNumber}>`,
-      `• Title: ${prTitle}`,
+      `• Title: \`${prTitle}\``,
       `• Triggered by: ${triggeredBy}`,
       `• Approver: ${approver}`,
       `• Quick trigger: ${quickTriggerText}`,
